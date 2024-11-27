@@ -1,23 +1,55 @@
-resource "random_pet" "lb_hostname" {
-}
+resource "azurerm_orchestrated_virtual_machine_scale_set" "vmss_terraform_tutorial" {
+  name                        = "vmss-terraform"
+  resource_group_name         = azurerm_resource_group.rg.name
+  location                    = azurerm_resource_group.rg.location
+  sku_name                    = "Standard_D2s_v4"
+  instances                   = 3
+  platform_fault_domain_count = 1     # For zonal deployments, this must be set to 1
+  zones                       = ["1"] # Zones required to lookup zone in the startup script
 
-# Create an virtual network and subnet
-resource "azurerm_virtual_network" "test" {
-  name                = "terraformvnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-}
+  user_data_base64 = base64encode(file("user-data.sh"))
+  os_profile {
+    linux_configuration {
+      disable_password_authentication = true
+      admin_username                  = "azureuser"
+      admin_ssh_key {
+        username   = "azureuser"
+        public_key = file("~/.ssh/id_rsa.pub")
+      }
+    }
+  }
+ source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-LTS-gen2"
+    version   = "latest"
+  }
+  os_disk {
+    storage_account_type = "Premium_LRS"
+    caching              = "ReadWrite"
+  }
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.test.name
-  address_prefixes     = ["10.0.0.0/20"]
-}
+  network_interface {
+    name                          = "nic"
+    primary                       = true
+    enable_accelerated_networking = false
 
-# network security group for the subnet with a rule to allow http, https and ssh traffic
-resource "azurerm_network_security_group" "myNSG" {
-  name                = "myNSG"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+    ip_configuration {
+      name                                   = "ipconfig"
+      primary                                = true
+      subnet_id                              = azurerm_subnet.subnet.id
+      load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.bepool.id]
+    }
+  }
+
+  boot_diagnostics {
+    storage_account_uri = ""
+  }
+
+  # Ignore changes to the instances property, so that the VMSS is not recreated when the number of instances is changed
+  lifecycle {
+    ignore_changes = [
+      instances
+    ]
+  }
+}
