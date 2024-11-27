@@ -13,7 +13,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale" {
       maximum = 10
     }
 
-    /*
+ /*
     rule {
       metric_trigger {
         metric_name        = "Percentage CPU"
@@ -32,7 +32,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale" {
         cooldown  = "PT1M"
       }
     }
-    rule {
+ rule {
       metric_trigger {
         metric_name        = "Percentage CPU"
         metric_resource_id = azurerm_orchestrated_virtual_machine_scale_set.vmss_terraform_tutorial.id
@@ -53,3 +53,4 @@ resource "azurerm_monitor_autoscale_setting" "autoscale" {
     */
   }
 }
+       
