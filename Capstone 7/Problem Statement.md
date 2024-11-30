@@ -1,4 +1,4 @@
-## Capstone Problem Statement: Troubleshooting Terraform Configuration Errors
+## Capstone 7: Troubleshooting Terraform Configuration Errors
 
 #### Problem Statement:
 
